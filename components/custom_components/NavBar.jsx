@@ -17,10 +17,10 @@ export default async function NavBar() {
   return (
     <div className="w-full flex justify-between items-center p-3 bg-gray-800 sticky top-0 z-10">
       <Link href="/" className="text-white text-2xl font-bold">
-        Home Page
+        Chat with me!
       </Link>
 
-      {session && session?.user ? (
+      {/* {session && session?.user ? (
         <div className="flex gap-4 justify-center items-center">
           <DropdownMenu>
             <DropdownMenuTrigger className="text-white cursor-pointer hover:text-gray-400">
@@ -48,7 +48,7 @@ export default async function NavBar() {
         <Link href="/auth" className="submit-button-class">
           Sign up
         </Link>
-      )}
+      )} */}
     </div>
   );
 }
