@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -10,6 +10,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { submitMessage } from "@/app/actions";
+import { Textarea } from "../ui/textarea";
+import { ArrowRight, Bot } from "lucide-react";
 
 export default function ChatClient() {
   const [input, setInput] = useState("");
@@ -36,48 +38,70 @@ export default function ChatClient() {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   return (
-    <div className="flex flex-col h-full p-4">
-      <Card className="flex-grow">
-        <CardHeader>
-          <h1 className="text-2xl font-bold">AI Chat</h1>
-        </CardHeader>
-        <CardContent className="flex-grow overflow-y-auto h-96">
-          <div className="space-y-4">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-lg ${
-                    msg.role === "user"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200 text-black"
-                  }`}
-                >
-                  {msg.content}
+    <Card className="flex-grow min-w-sm max-w-4xl w-dvw bg-[#5a616a] h-full">
+      <CardHeader>
+        <h1 className="text-2xl font-bold">AI Chat</h1>
+      </CardHeader>
+      <CardContent className="flex-1 flex-col overflow-y-auto h-0 relative">
+        <div className="space-y-4 relative mb-4">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex items-start gap-2
+                ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {msg.role !== "user" && (
+                <div className=" flex rounded-[50%] bg-[#1e2939] text-white min-w-[40px] h-[40px] justify-center items-center">
+                  <Bot className="translate-y-[-1px]" />
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-        <CardFooter>
-          <form onSubmit={handleSubmit} className="flex w-full space-x-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              disabled={isLoading}
-            />
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Thinking..." : "Send"}
-            </Button>
-          </form>
-        </CardFooter>
-      </Card>
-    </div>
+              )}
+              <div
+                className={`p-4 rounded-lg text-white max-w-[calc(100%-48px)] text-justify ${
+                  msg.role === "user" ? "bg-blue-500" : ""
+                }`}
+                dangerouslySetInnerHTML={{ __html: msg.content }}
+              />
+            </div>
+          ))}
+        </div>
+        <div ref={messagesEndRef} />
+      </CardContent>
+      <CardFooter>
+        <form
+          onSubmit={handleSubmit}
+          className="flex w-full space-x-2 bg-white p-4 rounded-md"
+        >
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            disabled={isLoading}
+            className="resize-none"
+            onKeyDown={handleKeyDown}
+          />
+          <Button type="submit" disabled={isLoading} className="cursor-pointer">
+            <ArrowRight />
+          </Button>
+        </form>
+      </CardFooter>
+    </Card>
   );
 }
