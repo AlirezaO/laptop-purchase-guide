@@ -12,12 +12,18 @@ import { Button } from "@/components/ui/button";
 import { submitMessage } from "@/app/actions";
 import { Textarea } from "../ui/textarea";
 import { ArrowRight, Bot } from "lucide-react";
+import { toast } from "sonner";
+import Markdown from "react-markdown";
+import { useChat, useCompletion } from "@ai-sdk/react";
 
 export default function ChatClient() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const { messages, input, handleInputChange, handleSubmit, reload, error } =
+    useChat({ api: "/api/gemini" });
+  const { completion, isLoading } = useCompletion({ api: "/api/completion" });
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -31,8 +37,8 @@ export default function ChatClient() {
       const data = await submitMessage(newMessages);
       setMessages((prevMessages) => [...prevMessages, data]);
     } catch (error) {
-      console.error(error);
-      // You might want to show an error message to the user
+      console.log("error: ", error);
+      //   toast.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -73,12 +79,20 @@ export default function ChatClient() {
                   <Bot className="translate-y-[-1px]" />
                 </div>
               )}
-              <div
+              {/* <div
                 className={`p-4 rounded-lg text-white max-w-[calc(100%-48px)] text-justify ${
                   msg.role === "user" ? "bg-blue-500" : ""
                 }`}
-                dangerouslySetInnerHTML={{ __html: msg.content }}
-              />
+                dangerouslySetInnerHTML={{ __html:  }}
+              /> */}
+
+              <div
+                className={`flex-col p-2 rounded-lg text-white max-w-[calc(100%-48px)] text-justify overflow-hidden overflow-ellipsis whitespace-nowrap ${
+                  msg.role === "user" ? "bg-blue-500" : ""
+                }`}
+              >
+                <Markdown>{msg.content}</Markdown>
+              </div>
             </div>
           ))}
         </div>
@@ -90,6 +104,7 @@ export default function ChatClient() {
           className="flex w-full space-x-2 bg-white p-4 rounded-md"
         >
           <Textarea
+            id="chatTextArea"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
