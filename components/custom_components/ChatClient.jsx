@@ -1,53 +1,39 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { submitMessage } from "@/app/actions";
 import { Textarea } from "../ui/textarea";
 import { ArrowRight, Bot } from "lucide-react";
-import { toast } from "sonner";
 import Markdown from "react-markdown";
-import { useChat, useCompletion } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
+import { toast } from "sonner";
+import remarkGfm from "remark-gfm";
 
 export default function ChatClient() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { messages, input, handleInputChange, handleSubmit, reload, error } =
-    useChat({ api: "/api/gemini" });
-  const { completion, isLoading } = useCompletion({ api: "/api/completion" });
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const newMessages = [...messages, { role: "user", content: input }];
-    setMessages(newMessages);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      const data = await submitMessage(newMessages);
-      setMessages((prevMessages) => [...prevMessages, data]);
-    } catch (error) {
-      console.log("error: ", error);
-      //   toast.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      api: "/api/gemini",
+      onError: (err) => {
+        toast.error(err.message);
+      },
+    });
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      const form = e.target.form;
+      if (form) {
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+          submitButton.click();
+        }
+      }
     }
   };
 
@@ -68,33 +54,53 @@ export default function ChatClient() {
       </CardHeader>
       <CardContent className="flex-1 flex-col overflow-y-auto h-0 relative">
         <div className="space-y-4 relative mb-4">
-          {messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex items-start gap-2
-                ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              {msg.role !== "user" && (
-                <div className=" flex rounded-[50%] bg-[#1e2939] text-white min-w-[40px] h-[40px] justify-center items-center">
-                  <Bot className="translate-y-[-1px]" />
-                </div>
-              )}
-              {/* <div
-                className={`p-4 rounded-lg text-white max-w-[calc(100%-48px)] text-justify ${
-                  msg.role === "user" ? "bg-blue-500" : ""
-                }`}
-                dangerouslySetInnerHTML={{ __html:  }}
-              /> */}
-
+          {messages.length > 0 ? (
+            messages.map((msg) => (
               <div
-                className={`flex-col p-2 rounded-lg text-white max-w-[calc(100%-48px)] text-justify overflow-hidden overflow-ellipsis whitespace-nowrap ${
-                  msg.role === "user" ? "bg-blue-500" : ""
-                }`}
+                key={msg.id}
+                className={`flex items-start gap-2
+                ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <Markdown>{msg.content}</Markdown>
+                {msg.role !== "user" && (
+                  <div className=" flex rounded-[50%] bg-[#1e2939] text-white min-w-[40px] h-[40px] justify-center items-center">
+                    <Bot className="translate-y-[-1px]" />
+                  </div>
+                )}
+                <div
+                  className={`flex-col p-2 rounded-lg text-white max-w-[calc(100%-48px)] text-justify overflow-hidden ${
+                    msg.role === "user" ? "bg-blue-500" : ""
+                  }`}
+                >
+                  <Markdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code({ node, inline, className, children, ...props }) {
+                        return inline ? (
+                          <code {...props} className="bg-gray-200 p-2 rounded">
+                            {children}
+                          </code>
+                        ) : (
+                          <pre {...props} className="bg-gray-200 p-2 rounded">
+                            <code>{children}</code>
+                          </pre>
+                        );
+                      },
+                      ul: ({ children }) => (
+                        <ul className="list-disc ml-4">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <li className="list-decimal ml-4">{children}</li>
+                      ),
+                    }}
+                  >
+                    {msg.content}
+                  </Markdown>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div>No messages yet!</div>
+          )}
         </div>
         <div ref={messagesEndRef} />
       </CardContent>
@@ -106,7 +112,7 @@ export default function ChatClient() {
           <Textarea
             id="chatTextArea"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Type your message..."
             disabled={isLoading}
             className="resize-none"
